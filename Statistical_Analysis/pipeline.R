@@ -221,11 +221,11 @@ deseq <- function(){
     
     	scvPlot(cds, ylim = c(0,2))
     
-    	for(i in unique(conds)){
+    	for(i in conds[duplicated(conds)]){ # 01.08.2013 - Better choice than unique(), because this does not include conditions where there is only one sample
         	residualsEcdfPlot( cds, i )
     	}
     
-    	for(i in unique(conds)){
+    	for(i in conds[duplicated(conds)]){ # 01.08.2013 - Better choice than unique(), because this does not include conditions where there is only one sample
         	diag <- varianceFitDiagnostics( cds, i )
         	if(!bool_edger)
                 plotdiag(diag, i)
@@ -245,7 +245,7 @@ deseq <- function(){
             }
         )
         
-        for(i in unique(conds)){
+        for(i in conds[duplicated(conds)]){ # 01.08.2013 - Better choice than unique(), because this does not include conditions where there is only one sample
             plotDispEsts(cds, i)
         }
     }
