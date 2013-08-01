@@ -46,7 +46,7 @@ bool_bayseq <- FALSE
 fastqFiles <- c()
 
 # Build the table containing the annotation information (e.g GeneBank ID, Gene ID, Gene Name) # 01.08.2013
-if(missing(annotation_db)){
+if(!exists("annotation_db")){
 	cat("\n\nPre-building the database for the annotation of the result files later on...")
 	total_ACCNUM <- rbind(toTable(org.Hs.egACCNUM), toTable(org.Mm.egACCNUM), toTable(org.Rn.egACCNUM))
 	total_GENENAME <- rbind(toTable(org.Hs.egGENENAME), toTable(org.Mm.egGENENAME), toTable(org.Rn.egGENENAME))
