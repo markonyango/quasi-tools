@@ -1,15 +1,14 @@
-cat("###########################################################################\n")
-cat("##\n")
-cat("## QUASI - Quality Assessment and Statistical Inference\n")
-cat("##\n")
-cat("##\n")
-cat("## This file is part of the QUASI Pipeline. For further information about \n")
-cat("## the functionality of the pipeline visit www.mybioinformatics.de\n")
-cat("##\n")
-cat("###########################################################################\n")
+cat("############################################################################\n")
+cat("##                                                                        ##\n")
+cat("## QUASI - Quality Assessment and Statistical Inference                   ##\n")
+cat("##                                                                        ##\n")
+cat("##                                                                        ##\n")
+cat("## This file is part of the QUASI Pipeline. For further information about ##\n")
+cat("## the functionality of the pipeline visit www.mybioinformatics.de        ##\n")
+cat("##                                                                        ##\n")
+cat("############################################################################\n")
 
-cat("\n");cat("\n");
-cat("Pipeline Version: 0.86\n")
+cat("\n\nPipeline Version: 0.87\n\n")
 
 
 # Defines a function to test wether the given package is installed or not
@@ -19,7 +18,7 @@ is.installed <- function(mypkg){
 
 # Check wether the required packages exist. If not, try to install them from
 # the Bioconductor site.
-packages <- c("edgeR", "DESeq", "baySeq", "org.Hs.eg.db", "limma", "snow", "multicore", "tcltk2")
+packages <- c("edgeR", "DESeq", "baySeq", "org.Hs.eg.db", "org.Mm.eg.db", "org.Rn.eg.db", "limma", "snow", "multicore", "tcltk2")
 check <- is.installed(packages)
 
 if(any(!check)){
@@ -46,6 +45,15 @@ bool_bayseq <- FALSE
 # To keep track of FastQ files, save them in this vector
 fastqFiles <- c()
 
+# Build the table containing the annotation information (e.g GeneBank ID, Gene ID, Gene Name) # 01.08.2013
+if(missing(annotation_db)){
+	cat("\n\nPre-building the database for the annotation of the result files later on...")
+	total_ACCNUM <- rbind(toTable(org.Hs.egACCNUM), toTable(org.Mm.egACCNUM), toTable(org.Rn.egACCNUM))
+	total_GENENAME <- rbind(toTable(org.Hs.egGENENAME), toTable(org.Mm.egGENENAME), toTable(org.Rn.egGENENAME))
+	annotation_db <- merge(total_ACCNUM, total_GENENAME, by="gene_id", all.x=TRUE)
+	cat("finished.\n")
+}
+
 
 configure <- function(){
     
@@ -59,6 +67,7 @@ configure <- function(){
     
     fastqFiles <<- list.files(fastqFolder, pattern = ".faq$|.fq$|.fastq$", full.names=TRUE)
     
+	# TODO : If no matrix.txt file has been found ask wether one already exists. If not try to create matrix.txt by running "count"
 #    if(length(list.files(fastqFolder, pattern = "matrix")) != 0){
 #        choice <- readline("Files containing the keyword 'matrix' have been found. Do you want to proceed with one of those? (y/n)")
 #
@@ -157,7 +166,7 @@ edgeR <- function(){
         string <- paste(paste("edger_",res[1],sep=""), res[2], sep = "")
         
         ## performing exact test to calculate p-values
-        cat("Performing Exact-Fisher test to calculate p-values (",res[1]," vs ",res[2],")\n")
+        cat("edgeR: Performing Exact-Fisher test to calculate p-values (",res[1]," vs ",res[2],")\n")
         assign(string,exactTest(dge, pair = c(res[1],res[2])), envir = globalenv())
         
         assign("edger_com_libsize", dge$common.lib.size, envir = globalenv())
@@ -170,17 +179,22 @@ edgeR <- function(){
         de.tags <- rownames(topTags(get(string), n = topX)$table)
         
         plotDE.edger(dge, de.tags, c(res[1],res[2]), pval)
+		
         
         ## generate output files
-        tmp <- topTags(get(string),n=nrow(get(string)$table))$table
+		cat("edgeR: Annotating the hitlist...\n")
+		tmp <- topTags(get(string),n=nrow(get(string)$table))$table
         tmp <- cbind(id=rownames(tmp),tmp)
-        tmp <- cbind(tmp,Refseq=substr(tmp[,1],as.integer(attr(regexpr('([0123456789]+)_',rownames(tmp),ignore.case=TRUE),"match.length"))+1,nchar(rownames(tmp))))
-        tmp <- merge(merge(tmp,toTable(org.Hs.egACCNUM),by.x="Refseq",by.y="accession",all.x=TRUE),toTable(org.Hs.egGENENAME),by.x="gene_id",by.y="gene_id",all.x=TRUE)
+        tmp <- cbind(tmp,accession=substr(tmp[,1],as.integer(attr(regexpr('([0123456789]+)_',rownames(tmp),ignore.case=TRUE),"match.length"))+1,nchar(rownames(tmp))))
+        tmp <- merge(tmp, annotation_db, by = "accession", all.x=TRUE)		
+		
+		assign(string, tmp, envir = globalenv()) # 01.08.2013 - FDR should obviously be saved with the rest of the results
         
         write.table(tmp,file=paste(string,"_all.txt",sep=""),sep="\t",row.names=FALSE)
         tmp <- tmp[tmp$FDR < .05,]	# 27.07.2012 - syntax has changed; adj.P.Val -> FDR
 	    tmp <- tmp[which(!is.na(tmp$id)),]
         write.table(tmp,file=paste(string,".txt",sep=""),sep="\t",row.names=FALSE)
+		
     }
     
     dev.off()
@@ -251,8 +265,8 @@ deseq <- function(){
         tmp <- get(string)[order(get(string)$pval),]
         
         cat("DESeq: Annotating the hitlist...\n")
-        tmp <- cbind(tmp,Refseq=substr(tmp[,1],as.integer(attr(regexpr('([0123456789]+)_',tmp[,1],ignore.case=TRUE),"match.length"))+1,nchar(tmp[,1])))
-        tmp <- merge(merge(tmp,toTable(org.Hs.egACCNUM),by.x="Refseq",by.y="accession",all.x=TRUE),toTable(org.Hs.egGENENAME),by.x="gene_id",by.y="gene_id",all.x=TRUE)
+        tmp <- cbind(tmp,accession=substr(tmp[,1],as.integer(attr(regexpr('([0123456789]+)_',tmp[,1],ignore.case=TRUE),"match.length"))+1,nchar(tmp[,1])))
+		tmp <- merge(tmp, annotation_db, by = "accession", all.x=TRUE)
         
         assign( string, tmp, envir = globalenv());
         

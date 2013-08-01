@@ -197,8 +197,14 @@ plotDE.edger <- function( obj, de.tags, cond, pval )
     title <- sprintf( "edgeR: Significant (FDR: %.2f) FoldChange of conditions %s & %s", pval, cond[1], cond[2] )
     
     group <- as.factor(obj$samples$group)
-    x <- obj$pseudo.count[,group == cond[1]]  # 19.07.2013 - syntax has changed; obj$pseudo.alt -> obj$pseudo.count
-    y <- obj$pseudo.count[,group == cond[2]]  # 19.07.2013 - syntax has changed; obj$pseudo.alt -> obj$pseudo.count
+    tryCatch({ # 01.08.2013 - syntax has obviously changed, adapting but keeping it backwards compatible
+		x <- obj$pseudo.alt[,group == cond[1]]
+		y <- obj$pseudo.alt[,group == cond[2]]},
+		warning = function(x){
+			x <- obj$pseudo.count[,group == cond[1]]
+			y <- obj$pseudo.count[,group == cond[2]]
+		}
+	)
 
     Adata <- rowMeans(x)
     Bdata <- rowMeans(y)
