@@ -201,8 +201,8 @@ plotDE.edger <- function( obj, de.tags, cond, pval )
 		x <- obj$pseudo.alt[,group == cond[1]]
 		y <- obj$pseudo.alt[,group == cond[2]]},
 		warning = function(x){
-			x <- obj$pseudo.count[,group == cond[1]]
-			y <- obj$pseudo.count[,group == cond[2]]
+			x <- obj$pseudo.counts[,group == cond[1]]
+			y <- obj$pseudo.counts[,group == cond[2]]
 		}
 	)
 
