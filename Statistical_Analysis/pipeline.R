@@ -8,8 +8,12 @@ cat("## the functionality of the pipeline visit www.mybioinformatics.de        #
 cat("##                                                                        ##\n")
 cat("############################################################################\n")
 
-cat("\n\nPipeline Version: 0.87\n\n")
+pipeline_version <- 0.87
 
+# Print the version of the pipeline
+pipeline_version <- function(version){
+    cat("\n\nPipeline Version: ", version, "\n\n")
+}
 
 # Defines a function to test wether the given package is installed or not
 is.installed <- function(mypkg){
@@ -31,6 +35,8 @@ lapply(packages, function(x){
     cat("Loading ", x ," - Version: ", as.character(packageVersion(x)) ,"\n")
     suppressPackageStartupMessages(library(x, character.only=T, quietly = T, verbose = F)) 
     })
+
+pipeline_version(pipeline_version)
 
 require(tcltk2)
 
