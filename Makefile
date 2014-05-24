@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-O2 -c -Wall -pedantic -std=c99
+CFLAGS=-O2 -c -Wall -pedantic -Werror
 
 all: qa count
 

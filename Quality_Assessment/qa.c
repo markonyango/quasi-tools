@@ -41,7 +41,7 @@ void boxplot(uint32_t *boxplot_bins, char *line, uint16_t length);
 clock_t BeginTimer();
 clock_t EndTimer(clock_t begin);
 uint32_t countReads(FILE *fileptr);
-char * strndup(const char *s, size_t n);
+
 
 
 int main(int argc, char *argv[]) {
@@ -65,11 +65,10 @@ int main(int argc, char *argv[]) {
 	 * the Illumina FASTQ version since they show differences in
 	 * the Name section (included whitespaces, FC identifier, etc)
 	 */
-	uint8_t illumina_fastq_version;
+	/* uint8_t illumina_fastq_version; // never used */
 
 
 	uint32_t linecount;
-	uint16_t seqlength;
 	uint16_t i,j;
 	uint32_t readcount;
 	uint64_t *dist_phred;
@@ -100,9 +99,7 @@ int main(int argc, char *argv[]) {
 
 	linecount = 0;
 	i = 0;
-	seqlength = 0;
 	max_seqlength = 0;
-	illumina_fastq_version = 0;
 
 	fileptr = fopen(argv[1], "r");
 	if (fileptr==NULL) {fputs ("File error!\n",stderr); exit (1);}
@@ -131,9 +128,6 @@ int main(int argc, char *argv[]) {
         
 
 	while( fgets(line,sizeof(line),fileptr) != NULL ){
-
-		if(linecount == 0)
-			illumina_fastq_version = detect_fastq_version(line);
 
 		linecount++;
 		
@@ -272,7 +266,6 @@ int main(int argc, char *argv[]) {
 	
 	printf("Reads: %d\n",readcount);
 	printf("Max. Length: %d\n",max_seqlength);
-	/*printf("Version: %d\n", illumina_fastq_version);*/
 	
 
 	/* variable definitions to calculate time taken */
@@ -449,7 +442,7 @@ clock_t EndTimer(clock_t begin)
 }
 
 
-char * strndup(const char *s, size_t n){
+/*char * strndup(const char *s, size_t n){
 	size_t len = strnlen(s,n);
 	char *new = malloc(len+1);
 
@@ -458,5 +451,5 @@ char * strndup(const char *s, size_t n){
 
 	new[len]='\0';
 	return memcpy(new,s,len);
-}
+}*/
 

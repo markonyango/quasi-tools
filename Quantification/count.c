@@ -7,9 +7,9 @@
 
 #include <time.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 
 #include "fasthash.h"
 #include "output.h"
@@ -38,7 +38,6 @@ int main(int argc, char *argv[]) {
 
 	uint8_t tokenctr = 0;
 	uint8_t filectr = 0;
-	uint8_t mapped = 0;		/* Boolean: is read mapped or not? */
 	uint32_t readcount_all = 0;
 	uint32_t readcount_unmapped = 0;
 	uint32_t readcount_mapped = 0;
@@ -83,7 +82,6 @@ int main(int argc, char *argv[]) {
 				while(ptr != NULL && tokenctr < 4){
 					if(strcmp(ptr,"*") != 0 && (tokenctr == 3)){
 						readcount_mapped++;
-						mapped = 1;
 						incword(ptr, filectr);
 					}
 					else if(strcmp(ptr,"*") == 0 && (tokenctr ==3)){
@@ -93,7 +91,6 @@ int main(int argc, char *argv[]) {
 					tokenctr++;
 				}
 				tokenctr = 0;
-				mapped = 0;
 			}
 			/* We found a SAM header line
 			 * lets index the id
@@ -122,8 +119,8 @@ int main(int argc, char *argv[]) {
 
 		printf("Distinct IDs: %d\n", total);
 		printf("Total Reads found: %d\n", readcount_all);
-		printf("Unmapped Reads found: %d (%.2f%)\n", readcount_unmapped, ((float)readcount_unmapped/readcount_all)*100);
-		printf("Mapped Reads found: %d (%.2f%)\n", readcount_mapped, ((float)readcount_mapped/readcount_all)*100);
+		printf("Unmapped Reads found: %d (%.2f%%)\n", readcount_unmapped, ((float)readcount_unmapped/readcount_all)*100);
+		printf("Mapped Reads found: %d (%.2f%%)\n", readcount_mapped, ((float)readcount_mapped/readcount_all)*100);
 
 		readcount_all = 0;
 		readcount_unmapped = 0;
