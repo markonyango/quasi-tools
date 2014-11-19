@@ -8,7 +8,7 @@ cat("## the functionality of the pipeline visit www.mybioinformatics.de        #
 cat("##                                                                        ##\n")
 cat("############################################################################\n")
 
-pipeline_version <- 0.87
+pipeline_version <<- 0.87
 
 # Print the version of the pipeline
 pipeline_version <- function(version){
@@ -36,7 +36,7 @@ lapply(packages, function(x){
     suppressPackageStartupMessages(library(x, character.only=T, quietly = T, verbose = F)) 
     })
 
-pipeline_version(pipeline_version)
+#pipeline_version(pipeline_version)
 
 require(tcltk2)
 
