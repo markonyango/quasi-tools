@@ -16,7 +16,7 @@ typedef struct nodes *nodeptr;
 
 typedef struct nodes {
 	char *word;
-	uint16_t count[20];
+	uint16_t count[256];
 	nodeptr next;
 } nodes;
 
