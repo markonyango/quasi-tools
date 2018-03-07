@@ -6,6 +6,8 @@ all: qa count
 qa:  qa.o
 	$(CC) qa.o -o qa
 	@cp qa ~/bin/
+	@echo Cleaning up...
+	@rm *.o qa
 
 count:	count.o fasthash.o output.o
 	$(CC) count.o fasthash.o output.o -o count -lm

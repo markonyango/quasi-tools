@@ -4,7 +4,7 @@
  Author      : Mark Onyango
  Version     :
  Copyright   : 
- Description : Hello World in C, Ansi-style
+ Description : 
  ============================================================================
  */
 
@@ -13,6 +13,8 @@
 #include <string.h>
 #include <stdint.h>
 #include <time.h>
+#include <unistd.h>
+#include <libgen.h>
 
 typedef struct base{
 		uint32_t A;
@@ -55,6 +57,12 @@ int main(int argc, char *argv[]) {
 	FILE *length_dist_fileptr;
 	FILE *bases_fileptr;
 
+	/* We need to keep track of the current working directory
+	 * so that output gets written to the directory this tool
+	 * was called from.
+	 */
+	char cwd[1024];
+
 	/* The size of the line array should account for very long
 	 * reads in addition to the readname etc. 1024 characters
 	 * should suffice for most FASTQ files.
@@ -81,7 +89,7 @@ int main(int argc, char *argv[]) {
 	float elapMilli, elapSeconds;
 	double begin = 0;
 
-	char temp_string[100];
+	char temp_string[2048];
     char *phred_sequence;
     
     /* Count how many times each base was sequenced */
@@ -101,6 +109,11 @@ int main(int argc, char *argv[]) {
 	i = 0;
 	max_seqlength = 0;
 
+	/* Let's get the current working directory first or exit with 1 */
+	if(getcwd(cwd, sizeof(cwd)) == NULL)
+		exit(1);
+
+	/* Open the input file in read mode */
 	fileptr = fopen(argv[1], "r");
 	if (fileptr==NULL) {fputs ("File error!\n",stderr); exit (1);}
 
@@ -162,8 +175,10 @@ int main(int argc, char *argv[]) {
 	/* Write the distribution of bases per cycle to file.
 	 * Also write the GC-content per cycle to file.
 	 */
-	strcpy(temp_string, argv[1]);
-	strcat(temp_string, "_base_dist.txt");
+	// strcpy(temp_string, cwd);
+	strcpy(temp_string, cwd);
+	strcat(temp_string, basename(argv[1]));
+	strcat(temp_string, "/base_dist.txt");
 	bases_fileptr = fopen(temp_string,"w");
 	if(bases_fileptr == NULL){
 		printf("Warning: Could not allocate space for _bases_dist.txt!\n");
@@ -184,8 +199,8 @@ int main(int argc, char *argv[]) {
 	/* Write the distribution of phred scores to file.
 	 * Phred scores range from 0 to 60 so only those will be output 
      */
-	strcpy(temp_string, argv[1]);
-	strcat(temp_string, "_phred_dist.txt");
+	strcpy(temp_string, cwd);
+	strcat(temp_string, "/phred_dist.txt");
 	phred_dist_fileptr = fopen(temp_string, "w");
 	if (phred_dist_fileptr == NULL){
 		printf("Warning: Could not allocate space for phred_dist.txt!\n");
@@ -234,8 +249,9 @@ int main(int argc, char *argv[]) {
 	/* Write the distribution of sequence lengths to file.
 	 * The for loop ranges from 0 to max_seqlength.
 	 */
-	strcpy(temp_string, argv[1]);
-	strcat(temp_string, "_length_dist.txt");
+	//strcpy(temp_string, cwd);
+	strcpy(temp_string, cwd);
+	strcat(temp_string, "/length_dist.txt");
 	length_dist_fileptr = fopen(temp_string, "w");
 	if(length_dist_fileptr == NULL){
 		printf("Warning: Could not allocate space for length_dist.txt!\n");
@@ -252,8 +268,9 @@ int main(int argc, char *argv[]) {
      * Each array subset corresponds to a cycle and ranges from 1 - 50 containing the number of times
      * each quality score was counted at the corresponding cycle.
      */
-    strcpy(temp_string, argv[1]);
-	strcat(temp_string, "_boxplotdata.txt");
+    //strcpy(temp_string, cwd);
+	strcpy(temp_string, cwd);
+	strcat(temp_string, "/boxplotdata.txt");
     boxplot_fileptr = fopen(temp_string,"w");
 	if(boxplot_fileptr == NULL){printf("Boxplot File could not be created!\n");}
     for(i = 0; i < 50; i++){
