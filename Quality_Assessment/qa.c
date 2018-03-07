@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	 * so that output gets written to the directory this tool
 	 * was called from.
 	 */
-	char cwd[1024];
+	char cwd[BUFSIZ];
 
 	/* The size of the line array should account for very long
 	 * reads in addition to the readname etc. 1024 characters
@@ -55,8 +55,6 @@ int main(int argc, char *argv[])
 	char tempFileName[2048];
 	char *phred_sequence;
 
-	char buff[PATH_MAX];
-
 	/* Count how many times each base was sequenced */
 	uint64_t sum_A = 0;
 	uint64_t sum_T = 0;
@@ -76,16 +74,7 @@ int main(int argc, char *argv[])
 
 	/* Let's get the current working directory first or exit with 1 */
 	if (getcwd(cwd, sizeof(cwd)) == NULL)
-	{
 		exit(1);
-	}
-	else
-	{
-		printf("Current working directory: %s\n", cwd);
-		printf("Basename of file: %s\n", basename(argv[1]));
-		chdir("..");
-		printf("Basename: %s\n", basename(getcwd(buff, sizeof(buff))));
-	}
 
 	/* Open the input file in read mode */
 	fileptr = fopen(argv[1], "r");
@@ -93,7 +82,9 @@ int main(int argc, char *argv[])
 	{
 		fputs("You neglected to specify a input file!\n", stderr);
 		exit(1);
-	} else {
+	}
+	else
+	{
 		printf("Processing file %s...\n", argv[1]);
 	}
 
@@ -169,12 +160,12 @@ int main(int argc, char *argv[])
 		for (i = 0; i < max_seqlength; i++)
 		{
 			fprintf(bases_fileptr, "%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
-					(float)bases[i].A / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-					(float)bases[i].T / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-					(float)bases[i].G / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-					(float)bases[i].C / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-					(float)bases[i].N / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-					((float)bases[i].G + bases[i].C) / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100);
+							(float)bases[i].A / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+							(float)bases[i].T / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+							(float)bases[i].G / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+							(float)bases[i].C / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+							(float)bases[i].N / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+							((float)bases[i].G + bases[i].C) / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100);
 		}
 	}
 	fclose(bases_fileptr);
@@ -279,8 +270,8 @@ int main(int argc, char *argv[])
 	printf("Max. Length: %d\n", max_seqlength);
 
 	/* variable definitions to calculate time taken */
-	elapTicks = EndTimer(begin);	/* stop the timer, and calculate the time taken */
-	elapMilli = elapTicks / 1000;   /* milliseconds from Begin to End */
+	elapTicks = EndTimer(begin);		/* stop the timer, and calculate the time taken */
+	elapMilli = elapTicks / 1000;		/* milliseconds from Begin to End */
 	elapSeconds = elapMilli / 1000; /* seconds from Begin to End */
 	/* elapMinutes = elapSeconds/60;    minutes from Begin to End */
 
@@ -314,7 +305,7 @@ void boxplot(uint32_t *boxplot_bins, char *line, uint16_t length)
 	for (cycle = 0; cycle < length; cycle++)
 	{
 		phred = line[cycle] - phred_offset; /* Get the phred score from the array */
-											/* Arrays are accessed in row-major order: array[x][y] = row * NUMCOLS + col */
+																				/* Arrays are accessed in row-major order: array[x][y] = row * NUMCOLS + col */
 		boxplot_bins[(phred * max_seqlength) + cycle]++;
 	}
 }
