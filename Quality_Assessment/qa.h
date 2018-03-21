@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <libgen.h>
 #include <limits.h>
+#include <inttypes.h>
+#include <math.h>
 
 typedef struct base
 {
@@ -26,8 +28,7 @@ uint64_t *number_of_bases_per_cycle;
 uint16_t max_seqlength;
 
 /* Function declarations */
-uint8_t detect_fastq_version(char line[1024]);
-void base_content(base *bases, char *read, uint16_t length);
+void base_content(base bases[], char *read, uint16_t length);
 void distribution_phred(uint64_t *dist_phred, uint64_t *dist_phred_ATGC, char *cigar, uint16_t length, char *phred_sequence);
 uint8_t detect_phred(FILE *fileptr);
 void boxplot(uint32_t *boxplot_bins, char *line, uint16_t length);

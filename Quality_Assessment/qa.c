@@ -2,9 +2,9 @@
  ============================================================================
  Name        : qa.c
  Author      : Mark Onyango
- Version     :
- Copyright   : 
- Description : 
+ Version     : 1.0
+ Copyright   : Mark Onyango
+ Description : Extract data from FASTQ files to assess sequencing quality
  ============================================================================
  */
 
@@ -32,13 +32,7 @@ int main(int argc, char *argv[])
 	 * reads in addition to the readname etc. 1024 characters
 	 * should suffice for most FASTQ files.
 	 */
-	char line[1024];
-
-	/* For the assessment of tile quality it is important to know
-	 * the Illumina FASTQ version since they show differences in
-	 * the Name section (included whitespaces, FC identifier, etc)
-	 */
-	/* uint8_t illumina_fastq_version; // never used */
+	char line[4096];
 
 	uint32_t linecount;
 	uint16_t i, j;
@@ -49,7 +43,7 @@ int main(int argc, char *argv[])
 	uint32_t *boxplot_bins;
 
 	float elapTicks;
-	float elapMilli, elapSeconds;
+	float elapMilli, elapSeconds, elapMinutes, elapHours;
 	double begin = 0;
 
 	char tempFileName[2048];
@@ -72,6 +66,9 @@ int main(int argc, char *argv[])
 	i = 0;
 	max_seqlength = 0;
 
+	/* Don't buffer stdout - printfs appear immediately */
+	setbuf(stdout, NULL);
+
 	/* Let's get the current working directory first or exit with 1 */
 	if (getcwd(cwd, sizeof(cwd)) == NULL)
 		exit(1);
@@ -83,15 +80,12 @@ int main(int argc, char *argv[])
 		fputs("You neglected to specify a input file!\n", stderr);
 		exit(1);
 	}
-	else
-	{
-		printf("Processing file %s...\n", argv[1]);
-	}
 
 	begin = BeginTimer();
 
 	phred_offset = detect_phred(fileptr);
 
+	printf("Prescanning %s...", argv[1]);
 	while (fgets(line, sizeof(line), fileptr) != NULL)
 	{
 		linecount++;
@@ -102,16 +96,18 @@ int main(int argc, char *argv[])
 			max_seqlength = max_seqlength < i ? i : max_seqlength;
 		}
 	}
+	printf("done\n");
 
 	linecount = 0;
 	rewind(fileptr);
 
 	boxplot_bins = calloc(max_seqlength * 50, sizeof(uint32_t));
 	dist_seqlength = calloc(max_seqlength, sizeof(uint32_t));
-	bases = malloc(max_seqlength * sizeof(base));
+	bases = calloc(max_seqlength, sizeof(base));
 	phred_sequence = malloc((max_seqlength * sizeof(char)) + 1);
 	number_of_bases_per_cycle = calloc(max_seqlength, sizeof(uint64_t));
 
+	printf("Processing %s...", argv[1]);
 	while (fgets(line, sizeof(line), fileptr) != NULL)
 	{
 
@@ -141,6 +137,7 @@ int main(int argc, char *argv[])
 			 * always the last line of a read block.*/
 		}
 	}
+	printf("done\n");
 	fclose(fileptr);
 
 	/* Number of reads that were just read */
@@ -157,15 +154,26 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		printf("Writing base distribution file...\n");
 		for (i = 0; i < max_seqlength; i++)
 		{
+			printf("Cycle: %i\tA: %" PRIu32 "\tT: %" PRIu32 "\tG: %" PRIu32 "\tC: %" PRIu32 "\tN: %" PRIu32 "\tsum: %" PRIu32 "\treadcount: %" PRIu32 " \t num_bases/cycle: %" PRIu64 "\n",
+				   (i+1),
+				   bases[i].A,
+				   bases[i].T,
+				   bases[i].G,
+				   bases[i].C,
+				   bases[i].N,
+				   (bases[i].A + bases[i].T + bases[i].G + bases[i].C + bases[i].N),
+				   readcount,
+				   number_of_bases_per_cycle[i]);
 			fprintf(bases_fileptr, "%.2f\t%.2f\t%.2f\t%.2f\t%.2f\t%.2f\n",
-							(float)bases[i].A / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-							(float)bases[i].T / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-							(float)bases[i].G / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-							(float)bases[i].C / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-							(float)bases[i].N / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
-							((float)bases[i].G + bases[i].C) / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100);
+					(float)bases[i].A / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+					(float)bases[i].T / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+					(float)bases[i].G / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+					(float)bases[i].C / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+					(float)bases[i].N / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100,
+					((float)bases[i].G + bases[i].C) / (readcount - (readcount - number_of_bases_per_cycle[i])) * 100);
 		}
 	}
 	fclose(bases_fileptr);
@@ -181,6 +189,7 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		printf("Writing phred distribution file...\n");
 		for (i = 0; i < max_seqlength; i++)
 		{
 			sum_A += bases[i].A;
@@ -189,12 +198,6 @@ int main(int argc, char *argv[])
 			sum_C += bases[i].C;
 			sum_N += bases[i].N;
 		}
-
-		/* Write the distribution for all bases' phred scores to file
-        for(i = 0; i < 61; i++){
-			double temp = ((double)dist_phred[i]/(readcount*seqlength))*100;
-			fprintf(phred_dist_fileptr,"%f ",temp);
-		}*/
 
 		/* Write the distribution for A phred scores to file */
 		for (i = 0; i < 61; i++)
@@ -229,7 +232,6 @@ int main(int argc, char *argv[])
 	/* Write the distribution of sequence lengths to file.
 	 * The for loop ranges from 0 to max_seqlength.
 	 */
-	//strcpy(tempFileName, cwd);
 	i = sprintf(tempFileName, "%s/%s-length_dist.txt", cwd, basename(argv[1]));
 	length_dist_fileptr = fopen(tempFileName, "w");
 	if (length_dist_fileptr == NULL)
@@ -238,9 +240,9 @@ int main(int argc, char *argv[])
 	}
 	else
 	{
+		printf("Writing length distribution file...\n");
 		for (i = 1; i <= max_seqlength; i++)
 		{
-			/*fwrite((const void*)&dist_seqlength[i], sizeof(uint32_t), 1, length_dist_fileptr);*/
 			fprintf(length_dist_fileptr, "%d ", dist_seqlength[i]);
 		}
 	}
@@ -256,29 +258,51 @@ int main(int argc, char *argv[])
 	{
 		printf("Boxplot File could not be created!\n");
 	}
-	for (i = 0; i < 50; i++)
-	{
-		for (j = 0; j < max_seqlength; j++)
+	else {
+		printf("Writing boxplot file...\n");
+		for (i = 0; i < 50; i++)
 		{
-			fprintf(boxplot_fileptr, "%d ", boxplot_bins[i * max_seqlength + j]);
+			for (j = 0; j < max_seqlength; j++)
+			{
+				fprintf(boxplot_fileptr, "%d ", boxplot_bins[i * max_seqlength + j]);
+			}
+			fprintf(boxplot_fileptr, "\n");
 		}
-		fprintf(boxplot_fileptr, "\n");
 	}
 	fclose(boxplot_fileptr);
 
+	printf("\n\nSummary statistics for %s:\n\n", basename(argv[1]));
 	printf("Reads: %d\n", readcount);
 	printf("Max. Length: %d\n", max_seqlength);
 
 	/* variable definitions to calculate time taken */
-	elapTicks = EndTimer(begin);		/* stop the timer, and calculate the time taken */
-	elapMilli = elapTicks / 1000;		/* milliseconds from Begin to End */
+	elapTicks = EndTimer(begin);	/* stop the timer, and calculate the time taken */
+	elapMilli = elapTicks / 1000;   /* milliseconds from Begin to End */
 	elapSeconds = elapMilli / 1000; /* seconds from Begin to End */
-	/* elapMinutes = elapSeconds/60;    minutes from Begin to End */
+	elapHours = floor(elapSeconds / 3600);
+	elapSeconds = (int)elapSeconds % 3600;
+	elapMinutes = floor(elapSeconds / 60);   /* minutes from Begin to End */
+	elapSeconds = (int)elapSeconds % 60;
 
-	printf("Seconds passed: %.2f\n", elapSeconds);
-	/* printf("Milliseconds passed: %.2f\n\n",elapMilli); */
+	printf("Time passed: %02d:%02d:%02d (hh:mm:ss)\n\n\n\n", (int)elapHours, (int)elapMinutes, (int)elapSeconds);
 
-	/* free(bases);	24.07.2012 - This caused invalid calls to free memory under Ubuntu */
+	free(bases); 	/*	24.07.2012 - This caused invalid calls to free memory under Ubuntu 
+						20.03.2018 - Fixed
+					*/
+	/* Free all memory that was stored for the arrays */
+	free(dist_phred);
+	free(dist_phred_ATGC);
+	free(dist_seqlength);
+	free(boxplot_bins);
+	free(phred_sequence);
+
+	/* Release the file pointers */
+	fileptr = NULL;
+	boxplot_fileptr = NULL;
+	phred_dist_fileptr = NULL;
+	length_dist_fileptr = NULL;
+	bases_fileptr = NULL;
+
 	return 0;
 }
 
@@ -305,7 +329,7 @@ void boxplot(uint32_t *boxplot_bins, char *line, uint16_t length)
 	for (cycle = 0; cycle < length; cycle++)
 	{
 		phred = line[cycle] - phred_offset; /* Get the phred score from the array */
-																				/* Arrays are accessed in row-major order: array[x][y] = row * NUMCOLS + col */
+											/* Arrays are accessed in row-major order: array[x][y] = row * NUMCOLS + col */
 		boxplot_bins[(phred * max_seqlength) + cycle]++;
 	}
 }
@@ -390,7 +414,7 @@ void distribution_phred(uint64_t *dist_phred, uint64_t *dist_phred_ATGC, char *c
 	}
 }
 
-void base_content(base *bases, char *read, uint16_t length)
+void base_content(base bases[], char *read, uint16_t length)
 {
 	/*uint16_t length = strlen(read)-1;*/
 	uint16_t i = 0;
@@ -425,18 +449,6 @@ void base_content(base *bases, char *read, uint16_t length)
 	}
 }
 
-uint8_t detect_fastq_version(char *line)
-{
-	uint16_t i = 0;
-	size_t len = strlen(line);
-
-	for (i = 0; i < len; i++)
-		if (line[i] == ' ')
-			return (1);
-
-	return (0);
-}
-
 clock_t BeginTimer()
 {
 	/* timer declaration */
@@ -453,14 +465,3 @@ clock_t EndTimer(clock_t begin)
 	End = clock(); /* stop the timer */
 	return End;
 }
-
-/*char * strndup(const char *s, size_t n){
-	size_t len = strnlen(s,n);
-	char *new = malloc(len+1);
-
-	if(new==NULL)
-		return NULL;
-
-	new[len]='\0';
-	return memcpy(new,s,len);
-}*/
