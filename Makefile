@@ -4,7 +4,7 @@ CFLAGS=-O2 -c -Wall -pedantic -Werror
 all: qa count
 
 qa:  qa.o
-	$(CC) qa.o -o qa
+	$(CC) qa.o -o qa -lm
 	@cp qa ~/bin/
 	@echo Cleaning up...
 	@rm *.o qa
