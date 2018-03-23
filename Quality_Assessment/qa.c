@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
 		printf("Writing length distribution file...\n");
 		for (i = 1; i <= max_seqlength; i++)
 		{
-			fprintf(length_dist_fileptr, "%d ", dist_seqlength[i]);
+			fprintf(length_dist_fileptr, "%f ", (float)(dist_seqlength[i]/readcount));
 		}
 	}
 	fclose(length_dist_fileptr);
