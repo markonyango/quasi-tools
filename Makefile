@@ -27,4 +27,8 @@ output.o: ./Quantification/output.c
 
 clean:
 	@echo Removing files...
-	@rm -rfv *.o qa count ~/bin/qa ~/bin/count
+	@rm -rfv *.o qa count
+
+uninstall:
+	@echo Uninstalling...
+	@rm ~/bin/qa ~/bin/count
