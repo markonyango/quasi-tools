@@ -55,10 +55,9 @@ int main(int argc, char *argv[]) {
 	FILE* file;
 
 	if(argc == 1){
-		printf("Usage:\n");
+		printf("Usage: count file1 [file2 ...]\n");
 		exit(1);
 	}
-
 
 	for(filectr = 0; filectr < (argc-1); filectr++){
 
