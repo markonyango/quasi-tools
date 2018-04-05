@@ -64,5 +64,13 @@ quit()
 RSCRIPT
 
 # Cloning GIT repository
-git clone ssh://houseunit@git.code.sf.net/p/quade/quasi ./quasi
+git clone https://github.com/markonyango/quasi-tools.git
+git clone https://github.com/markonyango/quasi-express.git
+
+# Install QUASI-tools
+sh ./quasi-tools/install.sh
+
+# Install QUASI-express
+cd quasi-express
+npm install
 
